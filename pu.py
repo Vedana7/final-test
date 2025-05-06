@@ -114,6 +114,75 @@ def location(message):
         tree_data[str(message.chat.id)] = [[message.location.latitude, message.location.longitude], '']
         state[str(message.chat.id)] = 1
         bot.send_message(message.chat.id, "Отправьте фотографию дерева (не как файл)")
+@bot.message_handler(content_types=['photo'])
+def photo(message):
+    if state[str(message.chat.id)] == 1:
+        fileID = message.photo[-1].file_id
+        file_info = bot.get_file(fileID)
+        downloaded_file = bot.download_file(file_info.file_path)
+        with open(str(fileID) + ".jpg", 'wb') as new_file:
+            new_file.write(downloaded_file)
+        tree_data[str(message.chat.id)].append(str(fileID) + ".jpg")
+        state[str(message.chat.id)] = 2
+        bot.send_message(message.chat.id, "Отправьте имя дерева")
+
+@bot.message_handler(content_types=['text'])
+def text(message):
+    sch = SwearingCheck()
+    if sch.predict(message.text) == [1]:
+        bot.send_message(message.chat.id, "Недопустимые выражения в сообщении")
+    else:
+        if state[str(message.chat.id)] == 2:
+            tree_data[str(message.chat.id)].append(message.text)
+            state[str(message.chat.id)] = 3
+            bot.send_message(message.chat.id, "Отправьте вид дерева")
+        elif state[str(message.chat.id)] == 3:
+            tree_data[str(message.chat.id)].append(message.text)
+            state[str(message.chat.id)] = 4
+            bot.send_message(message.chat.id, "Отправьте примерную высоту дерева")
+        elif state[str(message.chat.id)] == 4:
+            tree_data[str(message.chat.id)].append(message.text)
+            state[str(message.chat.id)] = 5
+            bot.send_message(message.chat.id, "Отправьте болезни дерева")
+        elif state[str(message.chat.id)] == 5:
+            tree_data[str(message.chat.id)].append(message.text)
+            state[str(message.chat.id)] = 6
+            bot.send_message(message.chat.id, "Отправьте местоположение дерева")
+        elif state[str(message.chat.id)] == 6:
+            tree_data[str(message.chat.id)].append(message.text)
+            state[str(message.chat.id)] = 7
+            bot.send_message(message.chat.id, "Отправьте видовые особенности дерева")
+        elif state[str(message.chat.id)] == 7:
+            tree_data[str(message.chat.id)].append(message.text)
+            state[str(message.chat.id)] = 8
+            bot.send_message(message.chat.id, "Отправьте ваше имя")
+        elif state[str(message.chat.id)] == 8:
+            tree_data[str(message.chat.id)].append(message.text)
+            state[str(message.chat.id)] = 9
+            bot.send_message(message.chat.id, "Отправьте ваш телефон")
+        elif state[str(message.chat.id)] == 9:
+            tree_data[str(message.chat.id)].append(message.text)
+            state[str(message.chat.id)] = 10
+            bot.send_message(message.chat.id, "Оцените состояние дерева от 1 до 3")
+        elif state[str(message.chat.id)] == 10:
+            tree_data[str(message.chat.id)][1] = colors_states[int(message.text)]
+            #print(tree_data[str(message.chat.id)])
+            rect.append(tree_data[str(message.chat.id)])
+            with open('data.json', 'w', encoding='utf8') as f:
+                json.dump(rect, f, ensure_ascii=False)
+            bot.send_message(message.chat.id, "Добавляю дерево")
+
+            create_treecard(rect[-1])
+            with open('card.png', 'rb') as card:
+                bot.send_photo(message.chat.id, card)
+
+
+bot.infinity_polling()
+
+
+
+
+
 
 
 
