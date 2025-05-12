@@ -1,59 +1,58 @@
-   import telebot
-   import folium
-   import io
-   from PIL import Image
-   import selenium
-   import json
-   import pandas as pd
-   from PIL import Image
-   from PIL import ImageFont
-   from PIL import ImageDraw
-   from check_swear import SwearingCheck
-   
-   
-   
-   rect = []
-   
-   try:
-       with open('data.json', encoding='utf8') as f:
-           rect = json.load(f)
-   except:
-       pass
-   
-   API_TOKEN = ''
-   
-   bot = telebot.TeleBot(API_TOKEN)
-   
-   # rect : [ [[x, y], color, photofile, name, type, height, desiases, mest, comment, beholder_name, phonenumber], ]
-   
-   state = {} # {id: state}  # 1-photo 2-name 3-type 4-height 5-болезни 6-местоположение 7-видовые особенности 8-имя наблюдателя 9-телефон 10-цвет
-   tree_data = {} # {id: []}
-   
-   kw = {
-       "fill": True,
-       "weight": 5
-   }
-   colors_states = {1:'red', 2:'orange', 3:'green'}
-   
-   def create_treecard(tree):
-       img = Image.open("tree0.png")
-       draw = ImageDraw.Draw(img)
-       font = ImageFont.truetype("arial.ttf", 100)
-       draw.text((1400, 650), tree[3], (0,0,0), font=font)
-       draw.text((1400, 920), tree[4], (0,0,0), font=font)
-       draw.text((1500, 1200), tree[5], (0,0,0), font=font)
-       draw.text((1350, 1450), tree[7], (0,0,0), font=font)
-       draw.text((1000, 1730), tree[6], (0,0,0), font=font)
-       draw.text((1250, 2000), tree[8], (0,0,0), font=font)
-       draw.text((1500, 2400), tree[9], (0,0,0), font=font)
-       draw.text((1000, 2620), tree[10], (0,0,0), font=font)
-   
-       treephoto = Image.open(tree[2])
-       treephoto = treephoto.resize((535, int(treephoto.size[1] * float(535 / float(treephoto.size[0])))), Image.Resampling.LANCZOS)
-       img.paste(treephoto, (504, 568))
+ import telebot
+import folium
+import io
+from PIL import Image
+import selenium
+import json
+import pandas as pd
+from PIL import Image
+from PIL import ImageFont
+from PIL import ImageDraw
+from check_swear import SwearingCheck
 
 
-img.save('card.png')
+
+rect = []
+
+try:
+    with open('data.json', encoding='utf8') as f:
+        rect = json.load(f)
+except:
+    pass
+
+API_TOKEN = '7752713941:AAHgMgfegOA_5JYUZrzcUc4VcCB9Rf2PhtI'
+
+bot = telebot.TeleBot(API_TOKEN)
+
+# rect : [ [[x, y], color, photofile, name, type, height, desiases, mest, comment, beholder_name, phonenumber], ]
+
+state = {} # {id: state}  # 1-photo 2-name 3-type 4-height 5-болезни 6-местоположение 7-видовые особенности 8-имя наблюдателя 9-телефон 10-цвет
+tree_data = {} # {id: []}
+
+kw = {
+    "fill": True,
+    "weight": 5
+}
+colors_states = {1:'red', 2:'orange', 3:'green'}
+
+def create_treecard(tree):
+    img = Image.open("tree0.png")
+    draw = ImageDraw.Draw(img)
+    font = ImageFont.truetype("arial.ttf", 100)
+    draw.text((1400, 650), tree[3], (0,0,0), font=font)
+    draw.text((1400, 920), tree[4], (0,0,0), font=font)
+    draw.text((1500, 1200), tree[5], (0,0,0), font=font)
+    draw.text((1350, 1450), tree[7], (0,0,0), font=font)
+    draw.text((1000, 1730), tree[6], (0,0,0), font=font)
+    draw.text((1250, 2000), tree[8], (0,0,0), font=font)
+    draw.text((1500, 2400), tree[9], (0,0,0), font=font)
+    draw.text((1000, 2620), tree[10], (0,0,0), font=font)
+
+    treephoto = Image.open(tree[2])
+    treephoto = treephoto.resize((535, int(treephoto.size[1] * float(535 / float(treephoto.size[0])))), Image.Resampling.LANCZOS)
+    img.paste(treephoto, (504, 568))
+
+    img.save('card.png')
     return 'card.png'
 
 def create_table(rect):
@@ -69,7 +68,7 @@ def create_map(rectangles):
 
     for rectangle in rectangles:
         folium.Marker(rectangle[0], icon=folium.Icon(rectangle[1])).add_to(m)
-    
+
     img_data = m._to_png(5)
     img = Image.open(io.BytesIO(img_data))
     width, height = img.size
@@ -79,7 +78,7 @@ def create_map(rectangles):
     bottom = height - 20
     im1 = img.crop((left, top, right, bottom))
     im1.save('image.png')
-    return 
+    return
 
 
 @bot.message_handler(commands=['start', 'help'])
@@ -89,12 +88,36 @@ def send_welcome(message):
 map - показать карту
 add - добавить дерево
 table - показать таблицу с данными всех деревьев
+problem - сообщиить о проблеме
 ''')
+
+@bot.message_handler(commands=['problem'])
+def report_problem(message):
+    bot.send_message(message.chat.id, "Опишите вашу проблему")
+    state[str(message.chat.id)] = 'problem_description'
+
+@bot.message_handler(func=lambda message: state.get(str(message.chat.id)) == 'problem_description')
+def get_problem_description(message):
+    tree_data[str(message.chat.id)] = [message.text]  # сохраняем описание проблемы
+    bot.send_message(message.chat.id, "Пожалуйста, введите ваш email для обратной связи.")
+    state[str(message.chat.id)] = 'problem_email'
+
+@bot.message_handler(func=lambda message: state.get(str(message.chat.id)) == 'problem_email')
+def get_problem_email(message):
+    if "@" in message.text and "." in message.text:
+        tree_data[str(message.chat.id)].append(message.text)
+        bot.send_message(message.chat.id, "Спасибо! Мы рассмотрим вашу проблему и свяжемся с вами по email")
+
+        state.pop(str(message.chat.id))
+        tree_data.pop(str(message.chat.id))
+    else:
+        bot.send_message(message.chat.id, "Неверный формат email. Пожалуйста, введите корректный email")
+
 
 @bot.message_handler(commands=['add'])
 def add(message):
     bot.send_message(message.chat.id, "Отправьте геолокацию дерева")
-    
+
 
 @bot.message_handler(commands=['map'])
 def send_map(message):
@@ -114,6 +137,8 @@ def location(message):
         tree_data[str(message.chat.id)] = [[message.location.latitude, message.location.longitude], '']
         state[str(message.chat.id)] = 1
         bot.send_message(message.chat.id, "Отправьте фотографию дерева (не как файл)")
+
+
 @bot.message_handler(content_types=['photo'])
 def photo(message):
     if state[str(message.chat.id)] == 1:
@@ -178,54 +203,6 @@ def text(message):
 
 
 bot.infinity_polling()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
