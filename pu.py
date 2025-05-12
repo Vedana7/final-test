@@ -20,7 +20,7 @@ try:
 except:
     pass
 
-API_TOKEN = '7752713941:AAHgMgfegOA_5JYUZrzcUc4VcCB9Rf2PhtI'
+API_TOKEN = ''
 
 bot = telebot.TeleBot(API_TOKEN)
 
